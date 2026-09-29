@@ -6,12 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="Economy\" />
-    <Folder Include="Enemies\" />
-    <Folder Include="Game\" />
-    <Folder Include="Items\" />
-    <Folder Include="World\" />
-  </ItemGroup>
-
 </Project>

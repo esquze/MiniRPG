@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MiniRPG.Core.Characters
+namespace MiniRPG.Core.Tests;
+
+public class CharacterTests
 {
-    internal class Stats
-    {
-    }
+    
 }
