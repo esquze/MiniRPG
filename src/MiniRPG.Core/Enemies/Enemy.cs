@@ -4,14 +4,31 @@ using System.Text;
 
 namespace MiniRPG.Core;
 
-public class Enemy(string name, int maxHealth, int strength, int armor)
+/* 
+ * TODO: 
+ * PotionDamage, FireDamage
+ * Types of enemies
+ * 
+*/
+
+public class Enemy(string name, int maxHealth, int damage, int armor, 
+    int experience, int agility, int attackSpeed)
 {
+
+    // Properties
+
     public string Name { get; } = name;
     public int MaxHealth { get; } = maxHealth > 0 ? maxHealth
-        : throw new ArgumentOutOfRangeException(nameof(maxHealth), "MaxHealth cannot be zero nor negative");
-    public int Strength { get; } = strength;
+        : throw new ArgumentOutOfRangeException(nameof(maxHealth), "MaxHealth cannot be zero or negative");
+    public int Damage { get; } = damage;
     public int Armor { get; } = armor >= 0 ? armor
         : throw new ArgumentOutOfRangeException(nameof(armor), "Armor cannot be negative");
+    public int Experience { get; } = experience > 0 ? experience 
+        : throw new ArgumentOutOfRangeException(nameof(experience), "Experience cannot be zero or negative");
+    public int Agility { get; private set; } = agility >= 0 ? agility
+        : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
+    public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
+        : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be negative");
     private int health = maxHealth;
     public int Health
     {
@@ -19,6 +36,11 @@ public class Enemy(string name, int maxHealth, int strength, int armor)
         private set => health = Math.Clamp(value, 0, MaxHealth);
     }
     public bool IsAlive => Health > 0;
+    private int AttackChance => Random.Shared.Next(1, 11) + AttackSpeed;
+
+
+    // Methods
+
     public void TakeDamage(int damage)
     {
         if (damage < 0)
@@ -31,11 +53,26 @@ public class Enemy(string name, int maxHealth, int strength, int armor)
         }
         Health -= damage - Armor;
     }
-    public void Heal(int ammout)
+    public void Heal(int amount)
     {
-        if (IsAlive)
+        if (amount < 0)
         {
-            Health += ammout;
+            throw new ArgumentOutOfRangeException(nameof(amount), "Heal cannot be negative");
         }
+        else if (IsAlive)
+        {
+            Health += amount;
+        }
+    }
+
+    public void Attack(Character target)
+    {
+        if (!IsAlive || !target.IsAlive) return;
+
+        if (AttackChance < target.Agility)
+        {
+            return;
+        }
+        target.TakeDamage(Damage);
     }
 }
