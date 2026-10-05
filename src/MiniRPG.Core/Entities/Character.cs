@@ -9,12 +9,13 @@ namespace MiniRPG.Core;
 /* TODO:
  * Points to use on upgardes after LVL Up
  * PotionDamage, FireDamage
+ * Buying stuff
 */
 
 public class Character (string name, int maxHealth, int strength, 
-    int armor, int agility, int attackSpeed)
+    int armor, int agility, int attackSpeed, int money)
 {
-    // Properties
+    // PROPERTIES
 
     public string Name { get; } = name;
     public int MaxHealth { get; } = maxHealth > 0 ? maxHealth 
@@ -26,6 +27,9 @@ public class Character (string name, int maxHealth, int strength,
         : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
     public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
         : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be negative");
+    public int Money { get; private set; } = money >= 0 ? money
+        : throw new ArgumentOutOfRangeException(nameof(money), "Money cannot be negative");
+
     private int health = maxHealth;
     public int Health 
     {
@@ -40,6 +44,10 @@ public class Character (string name, int maxHealth, int strength,
     public int IsLevelUp => Level * Level * 100;
     private int AttackChance => Random.Shared.Next(1, 11) + AttackSpeed;
     public int UpgradePoint { get; private set; } = 0;
+
+
+    // LISTS
+
     private readonly List<Weapon> _weapons = new();
     public IReadOnlyList<Weapon> Weapons => _weapons.AsReadOnly();
     private readonly HashSet<string> _skills = new HashSet<string>();
@@ -47,7 +55,9 @@ public class Character (string name, int maxHealth, int strength,
     private readonly Dictionary<string, int> _supplies = new Dictionary<string, int>();
     public IReadOnlyDictionary<string, int> Supplies => _supplies.AsReadOnly();
 
-    // Methods
+    // METHODS
+
+    // Health
 
     public void TakeDamage(int damage)
     {
@@ -71,6 +81,8 @@ public class Character (string name, int maxHealth, int strength,
         }
     }
 
+    // Levels
+
     public void GainExperience(int points)
     {
         if (points < 0)
@@ -84,6 +96,8 @@ public class Character (string name, int maxHealth, int strength,
             Level += 1;
         }
     }
+
+    // Attack
 
     public void Attack(Enemy target)
     {
@@ -100,6 +114,9 @@ public class Character (string name, int maxHealth, int strength,
             GainExperience(target.Experience);
         }
     }
+
+    // Weapons
+
     public void PickUp(Weapon weapon)
     {
         if (Weapon == null)
@@ -153,6 +170,8 @@ public class Character (string name, int maxHealth, int strength,
         }
     }
 
+    // Skills
+
     public bool LearnSkill(string skill)
     {
         if (_skills.Contains(skill))
@@ -171,6 +190,8 @@ public class Character (string name, int maxHealth, int strength,
         }
         return false;
     }
+
+    // Supplies
 
     public void AddSupply(string item, int count)
     {
@@ -207,5 +228,8 @@ public class Character (string name, int maxHealth, int strength,
         }
         return true;
     }
+
+    // Money
+
 
 }

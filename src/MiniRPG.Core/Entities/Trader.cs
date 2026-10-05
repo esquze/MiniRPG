@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace MiniRPG.Core.Economy;
+namespace MiniRPG.Core.Entities;
 
-public class Money
+public class Trader
 {
 }

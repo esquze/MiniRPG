@@ -12,7 +12,7 @@ namespace MiniRPG.Core;
 */
 
 public class Enemy(string name, int maxHealth, int damage, int armor, 
-    int experience, int agility, int attackSpeed)
+    int experience, int agility, int attackSpeed, int money)
 {
 
     // Properties
@@ -29,6 +29,8 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
         : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
     public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
         : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be negative");
+    public int Money { get; private set; } = money >= 0 ? money
+    : throw new ArgumentOutOfRangeException(nameof(money), "Money cannot be negative");
     private int health = maxHealth;
     public int Health
     {
@@ -40,6 +42,8 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
 
 
     // Methods
+
+    // Health
 
     public void TakeDamage(int damage)
     {
@@ -64,6 +68,8 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
             Health += amount;
         }
     }
+
+    // Attack
 
     public void Attack(Character target)
     {
