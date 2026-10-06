@@ -8,12 +8,13 @@ namespace MiniRPG.Core;
 
 /* TODO:
  * Points to use on upgardes after LVL Up
- * PotionDamage, FireDamage
+ * PosionDamage, FireDamage
  * Buying stuff
+ * Change the logic of defense for different armor types
 */
 
 public class Character (string name, int maxHealth, int strength, 
-    int armor, int agility, int attackSpeed, int money)
+    int defense, int agility, int attackSpeed, int money)
 {
     // PROPERTIES
 
@@ -21,8 +22,8 @@ public class Character (string name, int maxHealth, int strength,
     public int MaxHealth { get; } = maxHealth > 0 ? maxHealth 
         : throw new ArgumentOutOfRangeException(nameof(maxHealth), "MaxHealth cannot be zero or negative");
     public int Strength { get; } = strength;
-    public int Armor { get; } = armor >= 0 ? armor 
-        : throw new ArgumentOutOfRangeException(nameof(armor), "Armor cannot be negative");
+    public int Defense { get; } = defense >= 0 ? defense 
+        : throw new ArgumentOutOfRangeException(nameof(defense), "Armor cannot be negative");
     public int Agility { get; private set; } = agility >= 0 ? agility
         : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
     public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
@@ -38,6 +39,7 @@ public class Character (string name, int maxHealth, int strength,
     }
     public bool IsAlive => Health > 0;
     public Weapon? Weapon { get; private set; }
+    public Armor? Armor { get; private set; }
     public int AttackPower => Weapon?.Damage + Strength ?? Strength;
     public int Experience { get; private set; } = 0;
     public int Level { get; private set; } = 1;
@@ -50,10 +52,12 @@ public class Character (string name, int maxHealth, int strength,
 
     private readonly List<Weapon> _weapons = new();
     public IReadOnlyList<Weapon> Weapons => _weapons.AsReadOnly();
+    private readonly List<Armor> _armors = new();
+    public IReadOnlyList<Armor> Armors => _armors.AsReadOnly();
+    private readonly Dictionary<Potion, int> _potions = new Dictionary<Potion, int>();
+    public IReadOnlyDictionary<Potion, int> Potions => _potions.AsReadOnly();
     private readonly HashSet<string> _skills = new HashSet<string>();
     public IReadOnlySet<string> Skills => _skills.AsReadOnly();
-    private readonly Dictionary<string, int> _supplies = new Dictionary<string, int>();
-    public IReadOnlyDictionary<string, int> Supplies => _supplies.AsReadOnly();
 
     // METHODS
 
@@ -64,10 +68,10 @@ public class Character (string name, int maxHealth, int strength,
         if (damage < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(damage),"Damage cannot be negative");
-        } else if (damage <= Armor) {
+        } else if (damage <= Defense) {
             return;
         }
-        Health -= damage - Armor;
+        Health -= damage - Defense;
     }
 
     public void Heal(int amount)
@@ -112,6 +116,7 @@ public class Character (string name, int maxHealth, int strength,
         if(!target.IsAlive)
         {
             GainExperience(target.Experience);
+            Money += target.Money;
         }
     }
 
@@ -170,6 +175,38 @@ public class Character (string name, int maxHealth, int strength,
         }
     }
 
+    // Supplies
+
+    public void AddPotions(Potion item, int count)
+    {
+        if (count <= 0)
+        {
+            throw new ArgumentException("Count cannot be zero or negative");
+        }
+        else if (!_potions.ContainsKey(item))
+        {
+            _potions.Add(item, count);
+        }
+        else if (_potions.ContainsKey(item))
+        {
+            _potions[item] += count;
+        }
+    }
+
+    public bool UsePotion(Potion item)
+    {
+        if (!_potions.ContainsKey(item))
+        {
+            return false;
+        }
+        _potions[item]--;
+        if (_potions[item] == 0)
+        {
+            _potions.Remove(item);
+        }
+        return true;
+    }
+
     // Skills
 
     public bool LearnSkill(string skill)
@@ -191,45 +228,53 @@ public class Character (string name, int maxHealth, int strength,
         return false;
     }
 
-    // Supplies
+    
 
-    public void AddSupply(string item, int count)
+    // Trade
+
+    public void BuyItem(Item item)
     {
-        if (count <= 0)
+        if (Money - item.Price >= 0)
         {
-            throw new ArgumentException("Count cannot be zero or negative");
-        }
-        else if (!_supplies.ContainsKey(item))
-        {
-            _supplies.Add(item, count);
-        }
-        else if (_supplies.ContainsKey(item))
-        {
-            _supplies[item] += count;
+            Money -= item.Price;
+            if (item is Weapon weapon)
+            {
+                _weapons.Add(weapon);
+            }
+            else if (item is Armor armor)
+            {
+                _armors.Add(armor);
+            }
+            else if (item is Potion potion)
+            {
+                AddPotions(potion, 1);
+            }
         }
     }
 
-    public int GetSupplyCount(string item)
+    public void SellItem(Item item)
     {
-        _supplies.TryGetValue(item, out int count);
-        return count;
-    }
-
-    public bool UseSupply(string item)
-    {
-        if (!_supplies.ContainsKey(item))
+        if (item is Weapon weapon)
         {
-            return false;
+            if (Drop(weapon) == true)
+            {
+                Money += Convert.ToInt32(weapon.Price * 0.25);
+            }
         }
-        _supplies[item]--;
-        if (_supplies[item] == 0)
+        else if (item is Armor armor)
         {
-            _supplies.Remove(item);
+            if (_armors.Remove(armor) == true)
+            {
+                Money += Convert.ToInt32(armor.Price * 0.25);
+            }
         }
-        return true;
+        else if (item is Potion potion)
+        {
+            if (UsePotion(potion) == true) 
+            {
+                Money += Convert.ToInt32(potion.Price * 0.25);
+            }
+        }
     }
-
-    // Money
-
 
 }

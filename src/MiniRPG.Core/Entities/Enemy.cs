@@ -6,7 +6,7 @@ namespace MiniRPG.Core;
 
 /* 
  * TODO: 
- * PotionDamage, FireDamage
+ * PosionDamage, FireDamage
  * Types of enemies
  * 
 */
