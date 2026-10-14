@@ -10,13 +10,16 @@ public class Trader(string name, int money)
     public int Money { get; } = money > 0 ? money
        : throw new ArgumentOutOfRangeException(nameof(money), "Money cannot be zero or negative");
     private readonly List<Item> _items = new List<Item>();
-    public IReadOnlyList<Item> Item { get { return _items; } }
+    public IReadOnlyList<Item> Item { get => _items; }
 
     public void Buy(Character character, Item item)
     {
-        if (_items.Contains(item) && _items.Remove(item) == true)
+        if (_items.Contains(item))
         {
-            character.BuyItem(item);
+            if (character.BuyItem(item) == true)
+            {
+                _items.Remove(item);
+            }
         }
     }
 

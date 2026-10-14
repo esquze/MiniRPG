@@ -7,27 +7,35 @@ using static System.Net.Mime.MediaTypeNames;
 namespace MiniRPG.Core;
 
 /* TODO:
- * Points to use on upgardes after LVL Up
+ * Damage
  * PosionDamage, FireDamage
- * Buying stuff
  * Change the logic of defense for different armor types
+ * Redo skills
 */
 
+public enum Stats
+{
+    MaxHealth,
+    Strength,
+    Agility,
+    AttackSpeed
+}
+
 public class Character (string name, int maxHealth, int strength, 
-    int defense, int agility, int attackSpeed, int money)
+                        int agility, int attackSpeed, int money)
 {
     // PROPERTIES
 
     public string Name { get; } = name;
-    public int MaxHealth { get; } = maxHealth > 0 ? maxHealth 
+
+    public int MaxHealth { get; private set; } = maxHealth > 0 ? maxHealth 
         : throw new ArgumentOutOfRangeException(nameof(maxHealth), "MaxHealth cannot be zero or negative");
-    public int Strength { get; } = strength;
-    public int Defense { get; } = defense >= 0 ? defense 
-        : throw new ArgumentOutOfRangeException(nameof(defense), "Armor cannot be negative");
-    public int Agility { get; private set; } = agility >= 0 ? agility
-        : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
-    public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
-        : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be negative");
+    public int Strength { get; private set; } = strength > 0 ? strength
+        : throw new ArgumentOutOfRangeException(nameof(strength), "Strength cannot be zero or negative");
+    public int Agility { get; private set; } = agility > 0 ? agility
+        : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be zero or negative");
+    public int AttackSpeed { get; private set; } = attackSpeed > 0 ? attackSpeed
+        : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be zero or negative");
     public int Money { get; private set; } = money >= 0 ? money
         : throw new ArgumentOutOfRangeException(nameof(money), "Money cannot be negative");
 
@@ -40,12 +48,17 @@ public class Character (string name, int maxHealth, int strength,
     public bool IsAlive => Health > 0;
     public Weapon? Weapon { get; private set; }
     public Armor? Armor { get; private set; }
-    public int AttackPower => Weapon?.Damage + Strength ?? Strength;
-    public int Experience { get; private set; } = 0;
-    public int Level { get; private set; } = 1;
-    public int IsLevelUp => Level * Level * 100;
-    private int AttackChance => Random.Shared.Next(1, 11) + AttackSpeed;
-    public int UpgradePoint { get; private set; } = 0;
+    private int CurrentDefense;
+    public int Defense 
+    { 
+        get => Armor?.Defense ?? 0; 
+    } 
+    private int AttackPower => Weapon?.Damage + Strength ?? Strength;
+    private int AttackChance => Random.Shared.Next(1, 6) + AttackSpeed;
+    private int Experience { get; set; } = 0;
+    private int Level { get; set; } = 1;
+    private int IsLevelUp => Level * Level * 100;
+    private int UpgradePoint { get; set; } = 0;
 
 
     // LISTS
@@ -56,8 +69,8 @@ public class Character (string name, int maxHealth, int strength,
     public IReadOnlyList<Armor> Armors => _armors.AsReadOnly();
     private readonly Dictionary<Potion, int> _potions = new Dictionary<Potion, int>();
     public IReadOnlyDictionary<Potion, int> Potions => _potions.AsReadOnly();
-    private readonly HashSet<string> _skills = new HashSet<string>();
-    public IReadOnlySet<string> Skills => _skills.AsReadOnly();
+    //private readonly HashSet<string> _skills = new HashSet<string>();
+    //public IReadOnlySet<string> Skills => _skills.AsReadOnly();
 
     // METHODS
 
@@ -67,11 +80,16 @@ public class Character (string name, int maxHealth, int strength,
     {
         if (damage < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(damage),"Damage cannot be negative");
-        } else if (damage <= Defense) {
-            return;
+            throw new ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative");
         }
-        Health -= damage - Defense;
+        if (damage > CurrentDefense)
+        {
+            Health -= damage - CurrentDefense;
+            CurrentDefense = 0;
+        } else
+        {
+            CurrentDefense -= damage;
+        }
     }
 
     public void Heal(int amount)
@@ -79,7 +97,7 @@ public class Character (string name, int maxHealth, int strength,
         if(amount < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(amount), "Heal cannot be negative");
-        } else if (IsAlive )
+        } else if (IsAlive)
         {
             Health += amount;
         }
@@ -98,6 +116,33 @@ public class Character (string name, int maxHealth, int strength,
         while (Experience >= IsLevelUp)
         {
             Level += 1;
+            UpgradePoint += 1;
+        }
+    }
+
+    public void Upgrade(Stats stat)
+    {
+        if (UpgradePoint > 0)
+        {
+            if (stat is Stats.MaxHealth)
+            {
+                MaxHealth = Convert.ToInt32(MaxHealth / 0.8);
+                UpgradePoint -= 1;
+            }
+            if (stat is Stats.Strength)
+            {
+                UpgradePoint -= 1;
+            }
+            if (stat is Stats.Agility)
+            {
+                Agility += 1;
+                UpgradePoint -= 1;
+            }
+            if (stat is Stats.AttackSpeed)
+            {
+                AttackSpeed += 1;
+                UpgradePoint -= 1;
+            }
         }
     }
 
@@ -120,25 +165,104 @@ public class Character (string name, int maxHealth, int strength,
         }
     }
 
+    // Items
+
+    public void PickUp(Item item)
+    {
+        if (item is Weapon)
+        {
+            if (Weapon == null)
+            {
+                Weapon = (Weapon)item;
+            }
+            _weapons.Add((Weapon)item);
+        }
+        if (item is Armor)
+        {
+            if (Armor == null)
+            {
+                Armor = (Armor)item;
+            }
+            _armors.Add((Armor)item);
+        }
+        if (item is Potion)
+        {
+            AddPotion((Potion)item, 1);
+        }
+    }
+
+    public void Equip(Item item)
+    {
+        if (item is Weapon)
+        {
+            if (!_weapons.Contains(item))
+            {
+                throw new ArgumentException($"There is no {item} in inventory");
+            }
+            Weapon = (Weapon)item;
+        }
+        if (item is Armor)
+        {
+            if (!_armors.Contains(item))
+            {
+                throw new ArgumentException($"There is no {item} in inventory");
+            }
+            Armor = (Armor)item;
+            CurrentDefense = Defense;
+        }
+    }
+
+    public bool Drop(Item item)
+    {
+        if (item is Weapon)
+        {
+            if (!_weapons.Contains(item))
+            {
+                return false;
+            }
+            else if (Weapon == item)
+            {
+                Weapon = null;
+                _weapons.Remove((Weapon)item);
+                return true;
+            }
+            else
+            {
+                _weapons.Remove((Weapon)item);
+                return true;
+            }
+        }
+        if (item is Armor)
+        {
+            if (!_armors.Contains(item))
+            {
+                return false;
+            }
+            else if (Armor == item)
+            {
+                Armor = null;
+                _armors.Remove((Armor)item);
+                CurrentDefense = 0;
+                return true;
+            }
+            else
+            {
+                _armors.Remove((Armor)item);
+                return true;
+            }
+        }
+        if (item is Potion)
+        {
+            if (UsePotion((Potion)item) == true)
+            {
+                return true;
+            }
+            return false;
+        }
+        else { return false; }
+    }
+
     // Weapons
-
-    public void PickUp(Weapon weapon)
-    {
-        if (Weapon == null)
-        {
-            Weapon = weapon;
-        }
-        _weapons.Add(weapon);
-    }
-
-    public void Equip(Weapon weapon)
-    {
-        if (!_weapons.Contains(weapon))
-        {
-            throw new ArgumentException($"There is no {weapon} in inventory");
-        }
-        Weapon = weapon;
-    }
 
     public void EquipStrongestWeapon()
     {
@@ -156,28 +280,9 @@ public class Character (string name, int maxHealth, int strength,
         }
     }
 
-    public bool Drop(Weapon weapon)
-    {
-        if (!_weapons.Contains(weapon))
-        {
-            return false;
-        }
-        else if (Weapon == weapon)
-        {
-            Weapon = null;
-            _weapons.Remove(weapon);
-            return true;
-        }
-        else
-        {
-            _weapons.Remove(weapon);
-            return true;
-        }
-    }
-
     // Supplies
 
-    public void AddPotions(Potion item, int count)
+    public void AddPotion(Potion item, int count)
     {
         if (count <= 0)
         {
@@ -209,34 +314,35 @@ public class Character (string name, int maxHealth, int strength,
 
     // Skills
 
-    public bool LearnSkill(string skill)
-    {
-        if (_skills.Contains(skill))
-        {
-            return false;
-        }
-        _skills.Add(skill);
-        return true;
-    }
+    //public bool LearnSkill(string skill)
+    //{
+    //    if (_skills.Contains(skill))
+    //    {
+    //        return false;
+    //    }
+    //    _skills.Add(skill);
+    //    return true;
+    //}
 
-    public bool HasSkill(string skill)
-    {
-        if (_skills.Contains(skill))
-        {
-            return true;
-        }
-        return false;
-    }
+    //public bool HasSkill(string skill)
+    //{
+    //    if (_skills.Contains(skill))
+    //    {
+    //        return true;
+    //    }
+    //    return false;
+    //}
 
     
 
     // Trade
 
-    public void BuyItem(Item item)
+    public bool BuyItem(Item item)
     {
         if (Money - item.Price >= 0)
         {
             Money -= item.Price;
+
             if (item is Weapon weapon)
             {
                 _weapons.Add(weapon);
@@ -247,9 +353,11 @@ public class Character (string name, int maxHealth, int strength,
             }
             else if (item is Potion potion)
             {
-                AddPotions(potion, 1);
+                AddPotion(potion, 1);
             }
+            return true;
         }
+        return false;
     }
 
     public void SellItem(Item item)
@@ -263,7 +371,7 @@ public class Character (string name, int maxHealth, int strength,
         }
         else if (item is Armor armor)
         {
-            if (_armors.Remove(armor) == true)
+            if (Drop(armor) == true)
             {
                 Money += Convert.ToInt32(armor.Price * 0.25);
             }

@@ -21,15 +21,15 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
     public int MaxHealth { get; } = maxHealth > 0 ? maxHealth
         : throw new ArgumentOutOfRangeException(nameof(maxHealth), "MaxHealth cannot be zero or negative");
     public int Damage { get; } = damage;
-    public int Armor { get; } = armor >= 0 ? armor
+    public int Armor { get; private set; } = armor >= 0 ? armor
         : throw new ArgumentOutOfRangeException(nameof(armor), "Armor cannot be negative");
     public int Experience { get; } = experience > 0 ? experience 
         : throw new ArgumentOutOfRangeException(nameof(experience), "Experience cannot be zero or negative");
-    public int Agility { get; private set; } = agility >= 0 ? agility
+    public int Agility { get; } = agility >= 0 ? agility
         : throw new ArgumentOutOfRangeException(nameof(agility), "Agility cannot be negative");
-    public int AttackSpeed { get; private set; } = attackSpeed >= 0 ? attackSpeed
+    public int AttackSpeed { get; } = attackSpeed >= 0 ? attackSpeed
         : throw new ArgumentOutOfRangeException(nameof(attackSpeed), "AttackSpeed cannot be negative");
-    public int Money { get; private set; } = money >= 0 ? money
+    public int Money { get; } = money >= 0 ? money
     : throw new ArgumentOutOfRangeException(nameof(money), "Money cannot be negative");
     private int health = maxHealth;
     public int Health
@@ -38,7 +38,7 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
         private set => health = Math.Clamp(value, 0, MaxHealth);
     }
     public bool IsAlive => Health > 0;
-    private int AttackChance => Random.Shared.Next(1, 11) + AttackSpeed;
+    private int AttackChance => Random.Shared.Next(1, 5) + AttackSpeed;
 
 
     // Methods
@@ -51,11 +51,14 @@ public class Enemy(string name, int maxHealth, int damage, int armor,
         {
             throw new ArgumentOutOfRangeException(nameof(damage), "Damage cannot be negative");
         }
-        else if (damage <= Armor)
+        if (damage > Armor)
         {
-            return;
+            Health -= damage - Armor;
+            Armor = 0;
+        } else
+        {
+            Armor -= damage;
         }
-        Health -= damage - Armor;
     }
     public void Heal(int amount)
     {

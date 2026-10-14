@@ -6,7 +6,8 @@ using System.Xml.Linq;
 namespace MiniRPG.Core;
 
 /* TODO:
- * Potions, rings, 
+ * Rings 
+ * Weapons/Armor LVLs and chances to get
 */
 
 public class Item(string name, int price)
